@@ -1,0 +1,71 @@
+diff --git a/Bloxstrap/FastFlagManager.cs b/Bloxstrap/FastFlagManager.cs
+index a69b3e5..4723102 100644
+--- a/Bloxstrap/FastFlagManager.cs
++++ b/Bloxstrap/FastFlagManager.cs
+@@ -52,6 +52,12 @@ namespace Bloxstrap
+             //{ "UI.Menu.Style.ABTest.4", "FFlagEnableInGameMenuChromeABTest4" }
+         };
+ 
++        public static IReadOnlyDictionary<string, string> PerformanceDefaults = new Dictionary<string, string>
++        {
++            { "DFIntTaskSchedulerTargetFps", "240" },
++            { "FFlagDebugGraphicsPreferD3D11", "True" }
++        };
++
+         public static IReadOnlyDictionary<RenderingMode, string> RenderingModes => new Dictionary<RenderingMode, string>
+         {
+             { RenderingMode.Default, "None" },
+@@ -166,7 +172,7 @@ namespace Bloxstrap
+             {
+                 if (Prop.ContainsKey(key))
+                 {
+-                    if (key == Prop[key].ToString())
++                    if (value.ToString() == Prop[key].ToString())
+                         return;
+ 
+                     App.Logger.WriteLine(LOG_IDENT, $"Changing of '{key}' from '{Prop[key]}' to '{value}' is pending");
+@@ -248,8 +254,18 @@ namespace Bloxstrap
+ 
+         public override void Load(bool alertFailure = true)
+         {
++            bool firstRun = !File.Exists(FileLocation);
++
+             base.Load(alertFailure);
+ 
++            // sensible performance defaults, only seeded when no flag file exists yet
++            // (never overrides anything the user has configured)
++            if (firstRun)
++            {
++                foreach (var pair in PerformanceDefaults)
++                    Prop.TryAdd(pair.Key, pair.Value);
++            }
++
+             // clone the dictionary
+             OriginalProp = new(Prop);
+ 
+diff --git a/Bloxstrap/Installer.cs b/Bloxstrap/Installer.cs
+index d57e985..b41add8 100644
+--- a/Bloxstrap/Installer.cs
++++ b/Bloxstrap/Installer.cs
+@@ -23,7 +23,7 @@ namespace Bloxstrap
+ 
+         public bool CreateStartMenuShortcuts = true;
+ 
+-        public bool EnableAnalytics = true;
++        public bool EnableAnalytics = false;
+ 
+         public bool IsImplicitInstall = false;
+ 
+diff --git a/Bloxstrap/Models/Persistable/Settings.cs b/Bloxstrap/Models/Persistable/Settings.cs
+index eebf03d..7a58f2e 100644
+--- a/Bloxstrap/Models/Persistable/Settings.cs
++++ b/Bloxstrap/Models/Persistable/Settings.cs
+@@ -19,7 +19,7 @@ namespace Bloxstrap.Models.Persistable
+         public bool ForceRobloxLanguage { get; set; } = false;
+         public bool UseFastFlagManager { get; set; } = true;
+         public bool WPFSoftwareRender { get; set; } = false;
+-        public bool EnableAnalytics { get; set; } = true;
++        public bool EnableAnalytics { get; set; } = false;
+         public bool BackgroundUpdatesEnabled { get; set; } = false;
+         public bool DebugDisableVersionPackageCleanup { get; set; } = false;
+         public string? SelectedCustomTheme { get; set; } = null;
