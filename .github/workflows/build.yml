@@ -1,4 +1,4 @@
-name: Build custom Bloxstrap v8
+name: Build custom Bloxstrap v9
 on:
   workflow_dispatch:
   push:
@@ -6,6 +6,8 @@ on:
 jobs:
   build:
     runs-on: windows-latest
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v4
 
@@ -361,3 +363,13 @@ jobs:
         with:
           name: Bloxstrap-Custom-Setup
           path: setup-out/Bloxstrap-Custom-Setup.exe
+
+      - name: Publish direct-download Release (no zip)
+        continue-on-error: true
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          FILES="out/Bloxstrap.exe"
+          if [ -f setup-out/Bloxstrap-Custom-Setup.exe ]; then FILES="$FILES setup-out/Bloxstrap-Custom-Setup.exe"; fi
+          gh release create "build-${{ github.run_number }}" $FILES --repo "${{ github.repository }}" --title "Bloxstrap Custom build ${{ github.run_number }}" --notes "Direct downloads, no zip. Bloxstrap-Custom-Setup.exe is the installer; Bloxstrap.exe is the app on its own."
