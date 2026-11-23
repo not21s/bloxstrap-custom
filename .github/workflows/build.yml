@@ -14,9 +14,10 @@ jobs:
       - name: Get official v2.9.1 source and apply patch
         shell: bash
         run: |
-          git clone --depth 1 --recurse-submodules --shallow-submodules --branch v2.9.1 https://github.com/bloxstraplabs/bloxstrap.git src
           ls -la "$GITHUB_WORKSPACE"
-git apply --ignore-whitespace "$GITHUB_WORKSPACE/bloxstrap-custom.patch"
+          git clone --depth 1 --recurse-submodules --shallow-submodules --branch v2.9.1 https://github.com/bloxstraplabs/bloxstrap.git src
+          cd src
+          git apply --ignore-whitespace "$GITHUB_WORKSPACE/bloxstrap-custom.patch"
       - name: Publish
         run: dotnet publish src/Bloxstrap/Bloxstrap.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -o out
       - uses: actions/upload-artifact@v4
