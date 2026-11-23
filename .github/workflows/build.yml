@@ -1,4 +1,4 @@
-name: Build custom Bloxstrap v5
+name: Build custom Bloxstrap v6
 on:
   workflow_dispatch:
   push:
@@ -250,3 +250,39 @@ jobs:
         with:
           name: Bloxstrap-custom
           path: out/Bloxstrap.exe
+
+      - name: Build Setup.exe installer (Inno Setup)
+        continue-on-error: true
+        shell: bash
+        run: |
+          choco install innosetup -y --no-progress
+          cat > setup.iss <<'ISS'
+          [Setup]
+          AppName=Bloxstrap Custom
+          AppVersion=2.9.1-custom
+          AppPublisher=Custom build
+          CreateAppDir=no
+          Uninstallable=no
+          DisableProgramGroupPage=yes
+          DisableReadyPage=yes
+          PrivilegesRequired=lowest
+          WizardStyle=modern
+          Compression=lzma2
+          SolidCompression=yes
+          OutputDir=setup-out
+          OutputBaseFilename=Bloxstrap-Custom-Setup
+
+          [Files]
+          Source: "{#SourceExe}"; DestDir: "{tmp}"; Flags: deleteafterinstall
+
+          [Run]
+          Filename: "{tmp}\Bloxstrap.exe"; Description: "Launch the Bloxstrap installer now"; Flags: nowait postinstall skipifsilent
+          ISS
+          SRC="$(pwd -W)\\out\\Bloxstrap.exe"
+          "/c/Program Files (x86)/Inno Setup 6/ISCC.exe" "/DSourceExe=$SRC" setup.iss
+          ls -la setup-out
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Bloxstrap-Custom-Setup
+          path: setup-out/Bloxstrap-Custom-Setup.exe
