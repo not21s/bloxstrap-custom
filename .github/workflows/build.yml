@@ -1,4 +1,4 @@
-name: Build custom Bloxstrap v9
+name: Build custom Bloxstrap v10
 on:
   workflow_dispatch:
   push:
@@ -326,17 +326,19 @@ jobs:
           DisableProgramGroupPage=yes
           DisableReadyPage=no
           PrivilegesRequired=lowest
-          WizardStyle=modern
+          WizardStyle=classic
           WizardImageFile=wizard.bmp
           WizardSmallImageFile=small.bmp
           WizardImageStretch=no
           WizardImageBackColor=$140F0D
+          BeveledLabel=Bloxstrap Custom 2.9.1
           Compression=lzma2
           SolidCompression=yes
           OutputDir=setup-out
           OutputBaseFilename=Bloxstrap-Custom-Setup
 
           [Messages]
+          SetupWindowTitle=Bloxstrap Custom Setup
           WelcomeLabel1=Welcome to Bloxstrap Custom
           WelcomeLabel2=This installs Bloxstrap Custom (based on Bloxstrap 2.9.1) for your Windows account. It includes a new Performance page with one-click FPS presets.%n%nNo administrator rights are needed. You can uninstall it any time from Windows Settings > Apps.
           FinishedHeadingLabel=Bloxstrap Custom is installed
@@ -354,6 +356,40 @@ jobs:
           Filename: "{cmd}"; Parameters: "/c del ""{userdesktop}\Bloxstrap.lnk"""; Tasks: "!desktopicon"; Flags: runhidden
           Filename: "{cmd}"; Parameters: "/c del ""{userprograms}\Bloxstrap.lnk"""; Tasks: "!startmenuicon"; Flags: runhidden
           Filename: "{localappdata}\Bloxstrap\Bloxstrap.exe"; Description: "Open Bloxstrap settings"; Flags: nowait postinstall skipifsilent
+
+          [Code]
+          var
+            ModePage: TInputOptionWizardPage;
+
+          procedure InitializeWizard;
+          var
+            Note: TNewStaticText;
+            Existing: String;
+          begin
+            ModePage := CreateInputOptionPage(wpWelcome,
+              'Choose Installation Options',
+              'Who should this application be installed for?',
+              'Please select whether you wish to make this software available to all users or just yourself.',
+              True, False);
+            ModePage.Add('Anyone who uses this computer (all users) - not supported by Bloxstrap');
+            ModePage.Add('Only for me (' + GetUserNameString + ')');
+            ModePage.CheckListBox.ItemEnabled[0] := False;
+            ModePage.Values[1] := True;
+
+            Existing := ExpandConstant('{localappdata}\Bloxstrap');
+            Note := TNewStaticText.Create(ModePage);
+            Note.Parent := ModePage.Surface;
+            Note.Left := 0;
+            Note.Width := ModePage.SurfaceWidth;
+            Note.Top := ModePage.SurfaceHeight - ScaleY(40);
+            Note.AutoSize := False;
+            Note.WordWrap := True;
+            Note.Height := ScaleY(36);
+            if FileExists(Existing + '\Bloxstrap.exe') then
+              Note.Caption := 'There is already a per-user installation (' + Existing + '). Will reinstall/upgrade.'
+            else
+              Note.Caption := 'Bloxstrap Custom will be installed to ' + Existing + '.';
+          end;
           ISS
           SRC="$(pwd -W)\\out\\Bloxstrap.exe"
           "/c/Program Files (x86)/Inno Setup 6/ISCC.exe" "/DSourceExe=$SRC" setup.iss
