@@ -1,4 +1,4 @@
-name: Build custom Bloxstrap v6
+name: Build custom Bloxstrap v8
 on:
   workflow_dispatch:
   push:
@@ -256,6 +256,64 @@ jobs:
         shell: bash
         run: |
           choco install innosetup -y --no-progress
+          python -m pip install --quiet pillow
+          cat > art.py <<'PY'
+          import os
+          from PIL import Image, ImageDraw, ImageFont
+
+          def font(size, bold=True):
+              names = (["segoeuib.ttf", "seguisb.ttf", "arialbd.ttf", "DejaVuSans-Bold.ttf"] if bold
+                       else ["segoeui.ttf", "arial.ttf", "DejaVuSans.ttf"])
+              for n in names:
+                  try:
+                      return ImageFont.truetype(n, size)
+                  except Exception:
+                      pass
+              return ImageFont.load_default()
+
+          S = 4  # supersample for smooth edges
+          TOP, BOT = (13, 15, 20), (24, 28, 40)
+          ACCENT = (76, 141, 255)
+          WHITE, MUTED = (240, 243, 250), (132, 140, 158)
+
+          def gradient(w, h):
+              img = Image.new("RGB", (w, h))
+              d = ImageDraw.Draw(img)
+              for y in range(h):
+                  t = y / max(h - 1, 1)
+                  d.line([(0, y), (w, y)], fill=tuple(int(TOP[i] + (BOT[i] - TOP[i]) * t) for i in range(3)))
+              return img
+
+          def mark(d, x, y, size):
+              d.rounded_rectangle([x, y, x + size, y + size], radius=size // 4, fill=ACCENT)
+              f = font(int(size * 0.62))
+              d.text((x + size / 2, y + size / 2 + size * 0.02), "B", font=f, fill=WHITE, anchor="mm")
+
+          def big():
+              w, h = 164 * S, 314 * S
+              img = gradient(w, h)
+              d = ImageDraw.Draw(img)
+              mark(d, 22 * S, 28 * S, 44 * S)
+              d.text((22 * S, 92 * S), "Bloxstrap", font=font(22 * S), fill=WHITE, anchor="ls")
+              d.text((22 * S, 112 * S), "Custom", font=font(14 * S, False), fill=ACCENT, anchor="ls")
+              d.line([(22 * S, 128 * S), (52 * S, 128 * S)], fill=ACCENT, width=2 * S)
+              d.text((22 * S, 150 * S), "Performance", font=font(10 * S, False), fill=MUTED, anchor="ls")
+              d.text((22 * S, 164 * S), "presets built in", font=font(10 * S, False), fill=MUTED, anchor="ls")
+              d.text((22 * S, 292 * S), "based on v2.9.1", font=font(9 * S, False), fill=MUTED, anchor="ls")
+              return img.resize((164, 314), Image.LANCZOS)
+
+          def small():
+              w = h = 55 * S
+              img = gradient(w, h)
+              d = ImageDraw.Draw(img)
+              mark(d, 7 * S, 7 * S, 41 * S)
+              return img.resize((55, 55), Image.LANCZOS)
+
+          big().save("wizard.bmp")
+          small().save("small.bmp")
+          print("art written", os.path.getsize("wizard.bmp"), os.path.getsize("small.bmp"))
+          PY
+          python art.py
           cat > setup.iss <<'ISS'
           [Setup]
           AppName=Bloxstrap Custom
@@ -264,19 +322,36 @@ jobs:
           CreateAppDir=no
           Uninstallable=no
           DisableProgramGroupPage=yes
-          DisableReadyPage=yes
+          DisableReadyPage=no
           PrivilegesRequired=lowest
           WizardStyle=modern
+          WizardImageFile=wizard.bmp
+          WizardSmallImageFile=small.bmp
+          WizardImageStretch=no
+          WizardImageBackColor=$140F0D
           Compression=lzma2
           SolidCompression=yes
           OutputDir=setup-out
           OutputBaseFilename=Bloxstrap-Custom-Setup
 
+          [Messages]
+          WelcomeLabel1=Welcome to Bloxstrap Custom
+          WelcomeLabel2=This installs Bloxstrap Custom (based on Bloxstrap 2.9.1) for your Windows account. It includes a new Performance page with one-click FPS presets.%n%nNo administrator rights are needed. You can uninstall it any time from Windows Settings > Apps.
+          FinishedHeadingLabel=Bloxstrap Custom is installed
+          FinishedLabelNoIcons=Roblox links will now open through Bloxstrap Custom.
+
+          [Tasks]
+          Name: "desktopicon"; Description: "Create a &desktop shortcut"
+          Name: "startmenuicon"; Description: "Create a &Start menu shortcut"
+
           [Files]
           Source: "{#SourceExe}"; DestDir: "{tmp}"; Flags: deleteafterinstall
 
           [Run]
-          Filename: "{tmp}\Bloxstrap.exe"; Description: "Launch the Bloxstrap installer now"; Flags: nowait postinstall skipifsilent
+          Filename: "{tmp}\Bloxstrap.exe"; Parameters: "-quiet"; StatusMsg: "Installing Bloxstrap Custom..."; Flags: waituntilterminated runhidden
+          Filename: "{cmd}"; Parameters: "/c del ""{userdesktop}\Bloxstrap.lnk"""; Tasks: "!desktopicon"; Flags: runhidden
+          Filename: "{cmd}"; Parameters: "/c del ""{userprograms}\Bloxstrap.lnk"""; Tasks: "!startmenuicon"; Flags: runhidden
+          Filename: "{localappdata}\Bloxstrap\Bloxstrap.exe"; Description: "Open Bloxstrap settings"; Flags: nowait postinstall skipifsilent
           ISS
           SRC="$(pwd -W)\\out\\Bloxstrap.exe"
           "/c/Program Files (x86)/Inno Setup 6/ISCC.exe" "/DSourceExe=$SRC" setup.iss
