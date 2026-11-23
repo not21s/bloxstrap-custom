@@ -1,4 +1,4 @@
-name: Build custom Bloxstrap v13
+name: Build custom Bloxstrap v14
 on:
   workflow_dispatch:
   push:
@@ -388,7 +388,7 @@ jobs:
           cd src
           git apply --ignore-whitespace ../custom.patch
           echo "--- checking Performance page (v5) ---"
-          test -f Bloxstrap/UI/Elements/Settings/Pages/LauncherPage.xaml && echo "launcher page present (v13)" || { echo "LAUNCHER PAGE MISSING"; exit 1; }
+          test -f Bloxstrap/UI/Elements/Settings/Pages/LauncherPage.xaml && echo "launcher page present (v14)" || { echo "LAUNCHER PAGE MISSING"; exit 1; }
 
       - name: Publish single-file Windows app
         run: >
@@ -566,3 +566,13 @@ jobs:
           FILES="out/Bloxstrap.exe"
           if [ -f setup-out/Bloxstrap-Custom-Setup.exe ]; then FILES="$FILES setup-out/Bloxstrap-Custom-Setup.exe"; fi
           gh release create "build-${{ github.run_number }}" $FILES --repo "${{ github.repository }}" --title "Bloxstrap Custom build ${{ github.run_number }}" --notes "Direct downloads, no zip. Bloxstrap-Custom-Setup.exe is the installer; Bloxstrap.exe is the app on its own."
+          URL="https://github.com/${{ github.repository }}/releases/tag/build-${{ github.run_number }}"
+          {
+            echo "## Download (no zip needed)"
+            echo ""
+            echo "Open this page and click **Bloxstrap-Custom-Setup.exe** under Assets:"
+            echo ""
+            echo "$URL"
+            echo ""
+            echo "Please ignore the *Artifacts* section below. Those are zip files."
+          } >> "$GITHUB_STEP_SUMMARY"
